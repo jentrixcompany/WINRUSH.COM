@@ -3,177 +3,107 @@
 <head>
 <meta charset="UTF-8">
 <title>WINRUSH.COM Aviator</title>
-
 <style>
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(to bottom, #0b1d2a, #06111a);
+    font-family: 'Segoe UI', sans-serif;
+    background: #06111a;
     color: white;
     text-align: center;
     margin: 0;
     padding: 0;
 }
-
-h1 {
-    color: #ffcc00;
-    font-size: 40px;
-    margin-top: 20px;
-    text-shadow: 2px 2px 5px black;
-}
-
-#balance {
-    font-size: 22px;
-    margin-top: 10px;
-    color: #4caf50;
-    font-weight: bold;
-}
-
-#multiplier {
-    font-size: 40px;
-    margin: 20px;
-    color: #00e5ff;
-    text-shadow: 0 0 20px #00e5ff;
-}
-
-.box { margin: 15px; }
-
-input[type="number"] {
-    padding: 10px;
-    font-size: 18px;
-    width: 150px;
-    border-radius: 8px;
-    border: none;
-    text-align: center;
-    box-shadow: 0 0 10px #00e5ff;
-    background: #06111a;
-    color: white;
-}
-
-button {
-    padding: 12px 25px;
-    font-size: 20px;
-    margin: 10px;
-    border: none;
-    border-radius: 10px;
-    cursor: pointer;
-    font-weight: bold;
-    transition: all 0.2s ease;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-}
-button:hover { transform: scale(1.05); }
-
+h1 { color: #ffcc00; margin-top: 20px; }
+#balance { font-size: 22px; margin-top: 10px; color: #4caf50; font-weight: bold; }
+#multiplier { font-size: 40px; margin: 20px; color: #00e5ff; }
+input[type="number"] { padding: 10px; font-size: 18px; width: 150px; border-radius: 8px; border: none; text-align: center; }
+button { padding: 12px 25px; font-size: 20px; margin: 10px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; }
 #startBtn { background: #00c853; color: white; }
 #cashOutBtn { background: #d50000; color: white; }
-
-#result {
-    font-size: 20px;
-    margin-top: 15px;
-    color: #ffeb3b;
-    text-shadow: 1px 1px 3px black;
-}
-
-#graphContainer {
-    width: 90%;
-    max-width: 600px;
-    height: 300px;
-    margin: 20px auto;
-    border: 2px solid #00e5ff;
-    border-radius: 10px;
-    background: #06111a;
-    position: relative;
-}
+#result { font-size: 20px; margin-top: 15px; color: #ffeb3b; }
+#graphContainer { width: 90%; max-width: 600px; height: 300px; margin: 20px auto; border: 2px solid #00e5ff; border-radius: 10px; background: #06111a; }
 canvas { width: 100%; height: 100%; }
-
-#leaderboard {
-    max-width: 400px;
-    margin: 20px auto;
-    text-align: left;
-    font-size: 16px;
-    border: 1px solid #00e5ff;
-    padding: 10px;
-    border-radius: 8px;
-    background: #06111a;
-}
-
-/* Mobile */
-@media only screen and (max-width: 600px) {
-    #multiplier { font-size: 30px; }
-    button { font-size: 16px; padding: 8px 16px; }
-    input[type="number"] { font-size: 16px; width: 120px; }
-}
+#leaderboard { max-width: 400px; margin: 20px auto; text-align: left; font-size: 16px; border: 1px solid #00e5ff; padding: 10px; border-radius: 8px; background: #06111a; }
 </style>
 </head>
 <body>
 
 <h1>WINRUSH.COM Aviator ✈️</h1>
 <div id="balance">Balance: 1000 KES</div>
-
-<div class="box">
+<div>
     Bet Amount: <input type="number" id="betAmount" value="100" min="1">
 </div>
-
 <div id="multiplier">1.00x</div>
-
-<div id="graphContainer">
-    <canvas id="graphCanvas"></canvas>
-</div>
-
+<div id="graphContainer"><canvas id="graphCanvas"></canvas></div>
 <button id="startBtn">Start Game</button>
 <button id="cashOutBtn" disabled>Cash Out</button>
-
 <p id="result"></p>
-
 <div id="leaderboard">
     <h3>Leaderboard</h3>
     <ul id="playersList"></ul>
 </div>
 
-<!-- Sounds -->
-<audio id="beepSound">
-    <source src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" type="audio/ogg">
-</audio>
-<audio id="cashoutSound">
-    <source src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg" type="audio/ogg">
-</audio>
-<audio id="crashSound">
-    <source src="https://actions.google.com/sounds/v1/impacts/crash.ogg" type="audio/ogg">
-</audio>
+<!-- Audio -->
+<audio id="beepSound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg"></audio>
+<audio id="cashoutSound" src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg"></audio>
+<audio id="crashSound" src="https://actions.google.com/sounds/v1/impacts/crash.ogg"></audio>
 
 <script>
 let balance = parseFloat(localStorage.getItem("winrushBalance")) || 1000;
-let multiplier = 1.00;
+let multiplier = 1;
 let crashPoint = 0;
 let interval;
 let isRunning = false;
 let currentBet = 0;
-
-updateBalance();
-
-// Canvas
-const canvas = document.getElementById('graphCanvas');
-const ctx = canvas.getContext('2d');
+const graphData = [];
+const canvas = document.getElementById("graphCanvas");
+const ctx = canvas.getContext("2d");
 canvas.width = canvas.offsetWidth;
 canvas.height = canvas.offsetHeight;
-let graphData = [];
 
-// Sounds
 const beepSound = document.getElementById("beepSound");
+const cashoutSound = document.getElementById("cashoutSound");
+const crashSound = document.getElementById("crashSound");
 
-// Weighted crash
-function getCrashPoint() {
-    const rand = Math.random();
-    if(rand < 0.5) return (Math.random()*2 + 1).toFixed(2);       // 50% 1-3x
-    else if(rand < 0.8) return (Math.random()*3 + 3).toFixed(2);  // 30% 3-6x
-    else if(rand < 0.95) return (Math.random()*5 + 6).toFixed(2); // 15% 6-11x
-    else return (Math.random()*10 + 11).toFixed(2);                // 5% 11-21x
-}
-
-function updateBalance() {
+function updateBalance(){
     document.getElementById("balance").innerText = "Balance: " + balance.toFixed(2) + " KES";
     localStorage.setItem("winrushBalance", balance.toFixed(2));
 }
 
-// Draw graph
-function drawGraph() {
+function drawGraph(){
     ctx.clearRect(0,0,canvas.width,canvas.height);
-    ctx.
+    ctx.beginPath();
+    ctx.strokeStyle="#00e5ff"; ctx.lineWidth=2;
+    const stepX = canvas.width / 100;
+    graphData.forEach((m,i)=>{
+        let x = i*stepX;
+        let y = canvas.height - (m/10*canvas.height);
+        if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    });
+    ctx.stroke();
+}
+
+function generateLeaderboard(){
+    const players = [
+        {name:"Player1", multiplier:(Math.random()*10).toFixed(2)},
+        {name:"Player2", multiplier:(Math.random()*10).toFixed(2)},
+        {name:"Player3", multiplier:(Math.random()*10).toFixed(2)},
+        {name:"You", multiplier:multiplier.toFixed(2)}
+    ];
+    const ul=document.getElementById("playersList");
+    ul.innerHTML="";
+    players.sort((a,b)=>b.multiplier-a.multiplier).forEach(p=>{
+        const li=document.createElement("li");
+        li.textContent=p.name+": "+p.multiplier+"x";
+        ul.appendChild(li);
+    });
+}
+
+function getCrashPoint(){
+    const rand=Math.random();
+    if(rand<0.5) return (Math.random()*2+1).toFixed(2);
+    else if(rand<0.8) return (Math.random()*3+3).toFixed(2);
+    else if(rand<0.95) return (Math.random()*5+6).toFixed(2);
+    else return (Math.random()*10+11).toFixed(2);
+}
+
+document.getElementById("startBtn").onclick = function(){
