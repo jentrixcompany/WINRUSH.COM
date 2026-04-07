@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>WINRUSH.COM Aviator</title>
+
+<style>
+    body {
+        font-family: Arial;
+        background: #0b1d2a;
+        color: white;
+        text-align: center;
+    }
+
+    h1 { color: #ffcc00; }
+
+    #multiplier {
+        font-size: 50px;
+        margin: 20px;
+    }
+
+    .box {
+        margin: 10px;
+    }
+
+    input {
+        padding: 10px;
+        font-size: 16px;
+        width: 120px;
+        text-align: center;
+        border-radius: 5px;
+        border: none;
+    }
+
+    button {
+        padding: 10px 20px;
+        font-size: 18px;
+        margin: 10px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: transform 0.1s;
+    }
+
+    button:hover { transform: scale(1.05); }
+
+    #startBtn { background: #00c853; color: white; }
+    #cashOutBtn { background: #d50000; color: white; }
+
+    #balance {
+        font-size: 20px;
+        margin-top: 10px;
+        color: lightgreen;
+    }
+
+    #result { font-size: 18px; margin-top: 15px; }
+</style>
+</head>
+
+<body>
+
+<h1>WINRUSH.COM Aviator ✈️</h1>
+
+<div id="balance">Balance: 1000 KES</div>
+
+<div class="box">
+    Bet Amount: <input type="number" id="betAmount" value="100" min="1">
+</div>
+
+<div id="multiplier">1.00x</div>
+
+<button id="startBtn">Start Game</button>
+<button id="cashOutBtn" disabled>Cash Out</button>
+
+<p id="result"></p>
+
+<script>
+let balance = 1000;
+let multiplier = 1.00;
+let crashPoint = 0;
+let interval;
+let isRunning = false;
+let currentBet = 0;
+
+function updateBalance() {
+    document.getElementById("balance").innerText = "Balance: " + balance + " KES";
+}
+
+function getCrashPoint() {
+    return (Math.random() * 8 + 1.5).toFixed(2);
+}
+
+document.getElementById("startBtn").onclick = function () {
+    if (isRunning) return;
+
+    let bet = parseFloat(document.getElementById("betAmount").value);
+
+    if (bet <= 0 || bet > balance) {
+        alert("Invalid bet amount!");
+        return;
+    }
+
+    currentBet = bet;
+    balance -= bet;
+    updateBalance();
+
+    multiplier = 1.00;
+    crashPoint = getCrashPoint();
+    isRunning = true;
+
+    document.getElementById("result").innerText = "";
+    document.getElementById("cashOutBtn").disabled = false;
+
+    interval = setInterval(() => {
+        multiplier += 0.05;
+        document.getElementById("multiplier").innerText = multiplier.toFixed(2) + "x";
+
+        if (multiplier >= crashPoint) {
+            clearInterval(interval);
+            document.getElementById("result").innerText = "💥 Crashed at " + crashPoint + "x";
+            document.getElementById("cashOutBtn").disabled = true;
+            isRunning = false;
+        }
+    }, 100);
+};
+
+document.getElementById("cashOutBtn").onclick = function () {
+    if (!isRunning) return;
+
+    clearInterval(interval);
+
+    let winnings = currentBet * multiplier;
+    balance += winnings;
+
+    document.getElementById("result").innerText =
+        "✅ Cashed out at " + multiplier.toFixed(2) + "x | Won: " + winnings.toFixed(2) + " KES";
+
+    updateBalance();
+
+    document.getElementById("cashOutBtn").disabled = true;
+    isRunning = false;
+};
+</script>
+
+</body>
+</html>
