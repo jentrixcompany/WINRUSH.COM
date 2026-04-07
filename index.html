@@ -5,62 +5,107 @@
 <title>WINRUSH.COM Aviator</title>
 
 <style>
-    body {
-        font-family: Arial;
-        background: #0b1d2a;
-        color: white;
-        text-align: center;
-    }
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(to bottom, #0b1d2a, #06111a);
+    color: white;
+    text-align: center;
+    margin: 0;
+    padding: 0;
+}
 
-    h1 { color: #ffcc00; }
+h1 {
+    color: #ffcc00;
+    font-size: 40px;
+    margin-top: 20px;
+    text-shadow: 2px 2px 5px black;
+}
 
-    #multiplier {
-        font-size: 50px;
-        margin: 20px;
-    }
+#balance {
+    font-size: 22px;
+    margin-top: 10px;
+    color: #4caf50;
+    font-weight: bold;
+}
 
-    .box {
-        margin: 10px;
-    }
+#multiplier {
+    font-size: 40px;
+    margin: 20px;
+    color: #00e5ff;
+    text-shadow: 0 0 20px #00e5ff;
+}
 
-    input {
-        padding: 10px;
-        font-size: 16px;
-        width: 120px;
-        text-align: center;
-        border-radius: 5px;
-        border: none;
-    }
+.box { margin: 15px; }
 
-    button {
-        padding: 10px 20px;
-        font-size: 18px;
-        margin: 10px;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-        transition: transform 0.1s;
-    }
+input[type="number"] {
+    padding: 10px;
+    font-size: 18px;
+    width: 150px;
+    border-radius: 8px;
+    border: none;
+    text-align: center;
+    box-shadow: 0 0 10px #00e5ff;
+    background: #06111a;
+    color: white;
+}
 
-    button:hover { transform: scale(1.05); }
+button {
+    padding: 12px 25px;
+    font-size: 20px;
+    margin: 10px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+button:hover { transform: scale(1.05); }
 
-    #startBtn { background: #00c853; color: white; }
-    #cashOutBtn { background: #d50000; color: white; }
+#startBtn { background: #00c853; color: white; }
+#cashOutBtn { background: #d50000; color: white; }
 
-    #balance {
-        font-size: 20px;
-        margin-top: 10px;
-        color: lightgreen;
-    }
+#result {
+    font-size: 20px;
+    margin-top: 15px;
+    color: #ffeb3b;
+    text-shadow: 1px 1px 3px black;
+}
 
-    #result { font-size: 18px; margin-top: 15px; }
+#graphContainer {
+    width: 90%;
+    max-width: 600px;
+    height: 300px;
+    margin: 20px auto;
+    border: 2px solid #00e5ff;
+    border-radius: 10px;
+    background: #06111a;
+    position: relative;
+}
+canvas { width: 100%; height: 100%; }
+
+#leaderboard {
+    max-width: 400px;
+    margin: 20px auto;
+    text-align: left;
+    font-size: 16px;
+    border: 1px solid #00e5ff;
+    padding: 10px;
+    border-radius: 8px;
+    background: #06111a;
+}
+
+/* Mobile */
+@media only screen and (max-width: 600px) {
+    #multiplier { font-size: 30px; }
+    button { font-size: 16px; padding: 8px 16px; }
+    input[type="number"] { font-size: 16px; width: 120px; }
+}
 </style>
 </head>
-
 <body>
 
 <h1>WINRUSH.COM Aviator ✈️</h1>
-
 <div id="balance">Balance: 1000 KES</div>
 
 <div class="box">
@@ -69,78 +114,66 @@
 
 <div id="multiplier">1.00x</div>
 
+<div id="graphContainer">
+    <canvas id="graphCanvas"></canvas>
+</div>
+
 <button id="startBtn">Start Game</button>
 <button id="cashOutBtn" disabled>Cash Out</button>
 
 <p id="result"></p>
 
+<div id="leaderboard">
+    <h3>Leaderboard</h3>
+    <ul id="playersList"></ul>
+</div>
+
+<!-- Sounds -->
+<audio id="beepSound">
+    <source src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" type="audio/ogg">
+</audio>
+<audio id="cashoutSound">
+    <source src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg" type="audio/ogg">
+</audio>
+<audio id="crashSound">
+    <source src="https://actions.google.com/sounds/v1/impacts/crash.ogg" type="audio/ogg">
+</audio>
+
 <script>
-let balance = 1000;
+let balance = parseFloat(localStorage.getItem("winrushBalance")) || 1000;
 let multiplier = 1.00;
 let crashPoint = 0;
 let interval;
 let isRunning = false;
 let currentBet = 0;
 
-function updateBalance() {
-    document.getElementById("balance").innerText = "Balance: " + balance + " KES";
-}
+updateBalance();
 
+// Canvas
+const canvas = document.getElementById('graphCanvas');
+const ctx = canvas.getContext('2d');
+canvas.width = canvas.offsetWidth;
+canvas.height = canvas.offsetHeight;
+let graphData = [];
+
+// Sounds
+const beepSound = document.getElementById("beepSound");
+
+// Weighted crash
 function getCrashPoint() {
-    return (Math.random() * 8 + 1.5).toFixed(2);
+    const rand = Math.random();
+    if(rand < 0.5) return (Math.random()*2 + 1).toFixed(2);       // 50% 1-3x
+    else if(rand < 0.8) return (Math.random()*3 + 3).toFixed(2);  // 30% 3-6x
+    else if(rand < 0.95) return (Math.random()*5 + 6).toFixed(2); // 15% 6-11x
+    else return (Math.random()*10 + 11).toFixed(2);                // 5% 11-21x
 }
 
-document.getElementById("startBtn").onclick = function () {
-    if (isRunning) return;
+function updateBalance() {
+    document.getElementById("balance").innerText = "Balance: " + balance.toFixed(2) + " KES";
+    localStorage.setItem("winrushBalance", balance.toFixed(2));
+}
 
-    let bet = parseFloat(document.getElementById("betAmount").value);
-
-    if (bet <= 0 || bet > balance) {
-        alert("Invalid bet amount!");
-        return;
-    }
-
-    currentBet = bet;
-    balance -= bet;
-    updateBalance();
-
-    multiplier = 1.00;
-    crashPoint = getCrashPoint();
-    isRunning = true;
-
-    document.getElementById("result").innerText = "";
-    document.getElementById("cashOutBtn").disabled = false;
-
-    interval = setInterval(() => {
-        multiplier += 0.05;
-        document.getElementById("multiplier").innerText = multiplier.toFixed(2) + "x";
-
-        if (multiplier >= crashPoint) {
-            clearInterval(interval);
-            document.getElementById("result").innerText = "💥 Crashed at " + crashPoint + "x";
-            document.getElementById("cashOutBtn").disabled = true;
-            isRunning = false;
-        }
-    }, 100);
-};
-
-document.getElementById("cashOutBtn").onclick = function () {
-    if (!isRunning) return;
-
-    clearInterval(interval);
-
-    let winnings = currentBet * multiplier;
-    balance += winnings;
-
-    document.getElementById("result").innerText =
-        "✅ Cashed out at " + multiplier.toFixed(2) + "x | Won: " + winnings.toFixed(2) + " KES";
-
-    updateBalance();
-
-    document.getElementById("cashOutBtn").disabled = true;
-    isRunning = false;
-};
-</script>
-
-</body>
-</html>
+// Draw graph
+function drawGraph() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.
